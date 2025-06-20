@@ -1,0 +1,23 @@
+# Byte-code / cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Venvs
+venv/
+.env/
+
+# Git & editor crud
+.git/
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Build layers
+*.egg-info
+dist/
+build/
