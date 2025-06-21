@@ -1,0 +1,19 @@
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: first_db
+    environment: # base image's entrypoint script reads these
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: geodata # auto-create this db
+    ports:
+      - "3306:3306" # HostPort:ContainerPort -> lets my host's MySQL client hit it
+    volumes:
+      - db_data:/var/lib/mysql # to persist data between runs
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-proot"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db_data: # named volume keeps the files under Docker's control
