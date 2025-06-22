@@ -7,6 +7,7 @@ secrets: # define secrets at the root level (same level as services/volumes)
 
 services:
 
+  # Start db container, polls the health-check until it returns "healthy", and only then launches the app container
   db:
     image: mysql:8.0
     container_name: first_db

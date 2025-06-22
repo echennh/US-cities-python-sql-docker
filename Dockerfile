@@ -38,7 +38,5 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/src /app/src
 
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
-
-ENTRYPOINT ["./entrypoint.sh"]
+# launch app directly since the compose file handles health checks
+ENTRYPOINT ["python", "-m", "src.app"]
