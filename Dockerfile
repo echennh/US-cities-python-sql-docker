@@ -40,3 +40,5 @@ COPY --from=builder /app/src /app/src
 
 # launch app directly since the compose file handles health checks
 ENTRYPOINT ["python", "-m", "src.app"]
+
+CMD []
