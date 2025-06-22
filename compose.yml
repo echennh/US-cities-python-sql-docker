@@ -1,30 +1,51 @@
-  services:
-
-    db:
-      image: mysql:8.0
-      container_name: first_db
-      environment: # base image's entrypoint script reads these
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: geodata # auto-create this db
-        MYSQL_USER: loader # rw user for transformations
-        MYSQL_PASSWORD: loaderpass # normally never put passwords in repo, but this is just a sandbox proj anyway
-      ports:
-        - "3306:3306" # HostPort:ContainerPort -> lets my host's MySQL client hit it
-      volumes:
-        # init_db.sql and us-cities-top-1k-multi-year.csv are host-side files that live next to my compose.yml
-        # docker-entrypoint-initdb is a directory inside the official MySQL 8 image
-        # I prefix the db_init.sql so that the schema + user setup runs before any later scripts that might depend on it
-        # :ro at the end mounts the file read-only inside the container so MySQL can read it but not modify it
-        - ./init_db.sql:/docker-entrypoint-initdb.d/01_db_init.sql:ro
-        - ./us-cities-top-1k-multi-year.csv:/docker-entrypoint-initdb.d/us-cities-top-1k-multi-year.csv:ro
-      healthcheck:
-        test: ["CMD", "mysqladmin", "ping", "-proot"]
-        interval: 5s
-        retries: 10
-
-    app:
-      build: .
+secrets: # define secrets at the root level (same level as services/volumes)
+  loader_pw:
+    file: ./secrets/loader_password.txt #host-side file
+  ro_pw:
+    file: ./secrets/ro_password.txt #host-side file
 
 
-  volumes:
-    db_data: # named volume keeps the files under Docker's control
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: first_db
+    environment: # base image's entrypoint script reads these
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: geodata # auto-create this db
+      MYSQL_USER: loader # rw user for transformations
+      MYSQL_PASSWORD: loaderpass # normally never put passwords in repo, but this is just a sandbox proj anyway
+    ports:
+      - "3306:3306" # HostPort:ContainerPort -> lets my host's MySQL client hit it
+    volumes:
+      # init_db.sql and us-cities-top-1k-multi-year.csv are host-side files that live next to my compose.yml
+      # docker-entrypoint-initdb is a directory inside the official MySQL 8 image
+      # I prefix the db_init.sql so that the schema + user setup runs before any later scripts that might depend on it
+      # :ro at the end mounts the file read-only inside the container so MySQL can read it but not modify it
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_db_init.sql:ro
+      - ./us-cities-top-1k-multi-year.csv:/docker-entrypoint-initdb.d/us-cities-top-1k-multi-year.csv:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-proot"]
+      interval: 5s
+      retries: 10
+    secrets: # expose secrets inside this container
+      - loader_pw
+      - ro_pw
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: geodata
+    volumes:
+      - ./us-cities-top-1k-multi-year.csv:/data/cities.csv:ro # <- makes CSV visible
+    secrets:
+      - loader_pw
+      - ro_pw
+
+volumes:
+  db_data: # named volume keeps the files under Docker's control
