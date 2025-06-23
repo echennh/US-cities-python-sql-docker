@@ -38,7 +38,6 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/src /app/src
 
-# launch app directly since the compose file handles health checks
-ENTRYPOINT ["python", "-m", "src.app"]
+# can't launch python here because it interferes with debugging
 
 CMD []
