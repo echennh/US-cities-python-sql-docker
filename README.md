@@ -21,11 +21,14 @@ python -m src.app load \
 --pw-file /run/secrets/loader_pw
 ```
 5. Run app queries against db (can reuse second terminal if you'd like)
+This will get you the total population in cities for each state from the latest year (2018) for each state you supply (in this case, New Hampshire and Ohio), 
+then also sum it to get the grand total. It also will print logs at the debug level.
 ```bash
-docker compose run --rm app \ 
+docker compose run --rm app \
 python -m src.app query \
---user ro --pw-stdin NH
+--user ro --pw-stdin --states NH Ohio --debug
 ```
+
 
 
 # Debugging
@@ -66,6 +69,7 @@ If you want to debug in Pycharm (must have Professional),
 4. Select "venv" and then type in /opt/venv/bin/python. Once you hit enter, it will stil look like there is no interpreter. Click on the interpreter box again, and now you should see the new one in the dropdown -select it.
 5. In your run configuration, go choose the new interpreter and apply it to your run configuration.
 
+
 ## Pycharm Debugger: can't open file '/opt/.pycharm_helpers/pydev/pydevd.py': [Errno 2] No such file or directory
 
 1. Stop all your docker containers running.
@@ -98,9 +102,10 @@ docker system prune -a --volumes   # nuke ALL unused objects
 5. Now you can run the Pycharm run configuration in debug mode.
 
 What happened?
-PyCharm had created a named Docker volume for its debugger helpers (us-cities-python-sql-docker_pycharm_helpers_PY-…) but—because of a known JetBrains bug—never copied the helper files into it, so every debug run died with “can't open file '/opt/.pycharm_helpers/pydev/pydevd.py'”.
+PyCharm had created a named Docker volume for its debugger helpers (us-cities-python-sql-docker_pycharm_helpers_PY-…) but - because of a known JetBrains bug - never copied the helper files into it, so every debug run died with “can't open file '/opt/.pycharm_helpers/pydev/pydevd.py'”.
 These prune commands deleted the stale, empty helpers volume (and associated containers/networks); when you opened PyCharm again it rebuilt the Compose interpreter from scratch, this time bind-mounting or repopulating the helpers correctly, so pydevd.py was finally present and the debugger could start.
 
 ### References
 https://youtrack.jetbrains.com/issue/PY-81141
+
 https://tomwojcik.com/posts/2021-01-20/filenotfound-fragment.py-pycharm
