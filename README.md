@@ -86,9 +86,9 @@ Either set `DEBUG=true` (env-var) or pass `--debug` and the app will emit detail
 
 # Environment variables
 | Variable  | Default   | Purpose                  |
-| --------- | --------- | ------------------------ |
+| --------- | --------- |--------------------------|
 | `DB_HOST` | `db`      | MySQL service host       |
-| `DB_PORT` | `3306`    | … port                   |
+| `DB_PORT` | `3306`    | MySQL service port       |
 | `DB_NAME` | `geodata` | Database name            |
 | `DEBUG`   | `false`   | Turn on DEBUG-level logs |
 
@@ -97,6 +97,5 @@ Either set `DEBUG=true` (env-var) or pass `--debug` and the app will emit detail
 
 | Task                                | Command                                                |
 | ----------------------------------- | ------------------------------------------------------ |
-| **Run unit tests** inside the image | `docker compose run --rm app pytest -q`                |
 | **Rebuild from scratch**            | `docker compose build --no-cache app`                  |
 | **Poke the DB** (root user)         | `docker exec -it first_db mysql -uroot -proot geodata` |
