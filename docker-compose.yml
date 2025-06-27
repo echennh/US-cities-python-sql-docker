@@ -19,7 +19,7 @@ services:
     ports:
       - "3306:3306" # HostPort:ContainerPort -> lets my host's MySQL client hit it
     volumes:
-      # init_db.sql and us-cities-top-1k-multi-year.csv are host-side files that live next to my compose.yml
+      # init_db.sql and us-cities-top-1k-multi-year.csv are host-side files that live next to my docker-compose.yml
       # docker-entrypoint-initdb is a directory inside the official MySQL 8 image
       # I prefix the db_init.sql so that the schema + user setup runs before any later scripts that might depend on it
       # :ro at the end mounts the file read-only inside the container so MySQL can read it but not modify it

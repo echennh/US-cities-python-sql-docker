@@ -39,5 +39,5 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/src /app/src
 
 # can't launch python here because it interferes with debugging
-
-CMD []
+COPY entrypoint.sh /app/
+ENTRYPOINT ["/app/entrypoint.sh"]
