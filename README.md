@@ -1,6 +1,8 @@
 ![img.png](img.png)
 
 
+![mermaid_chart.png](mermaid_chart.png)
+
 # Quick start
 
 ## Prerequsites:
@@ -12,22 +14,17 @@
 ```bash
 docker compose up db --build
 ```
-4. Load data into the database (second terminal) 
-```bash
-docker compose run --rm app \
-python -m src.app load \
---file /data/cities.csv \
---user loader \
---pw-file /run/secrets/loader_pw
-```
-5. Run app queries against db (can reuse second terminal if you'd like)
+4. Run app queries against db (second terminal)
 This will get you the total population in cities for each state from the latest year (2018) for each state you supply (in this case, New Hampshire and Ohio), 
-then also sum it to get the grand total. It also will print logs at the debug level.
+then also sum it to get the grand total. 
+
+It also will optionally print logs at the debug level if you pass in the debug environment variable as shown, or if you have a update the .env file to have `DEBUG=true`.
 ```bash
-docker compose run --rm app \
+docker compose run -e DEBUG=true --rm app \
 python -m src.app query \
---user ro --pw-stdin --states NH Ohio --debug
+--user ro --pw-stdin --states "New Hampshire" OH
 ```
+5. Once done using the container, open a new terminal up and run `docker compose down`, which will cleanup docker resources from just this project.
 
 
 
@@ -40,6 +37,11 @@ docker exec -it first_db mysql -uroot -proot geodata
 
 ```bash
 docker exec -it first_db mysql -uloader -ploaderpass geodata
+```
+
+If debugging and you changed the source code or docker code, use `--no-cache` to force the container to rebuild fresh.
+```bash
+docker compose up db --build --no-cache
 ```
 
 Inspect the docker container after build:
