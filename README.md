@@ -19,7 +19,7 @@ A minimal data-platform exercise that:
 - git installed
 - Docker compose installed
 
-## Quick-start
+# Quick-start
 
 1. Clone the repo
 ```bash
