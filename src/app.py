@@ -14,7 +14,7 @@ Usage examples (inside the container):
     python -m app query --user root --pw-file /run/secrets/db-pw \
         --debug NY CA
 """
-from __future__ import annotations
+from __future__ import annotations # postpones annotations so that code definition order does not matter
 
 import argparse
 import csv
@@ -23,7 +23,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
 #this script executes in /opt/project/src
 
 from .config import Config
@@ -45,6 +45,7 @@ __all__ = ["main"]
 # ---------------------------------------------------------------------------
 _LOG_FORMAT = "%(" "asctime)sZ | %(levelname)-8s | %(name)s: %(message)s"
 _SAMPLE_SIZE = 5  # number of rows from city_population to show after load
+_LOGGER = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Argument parsing helpers
@@ -129,12 +130,15 @@ def _setup_logging(*, debug: bool) -> None:
       :pyattr:`logging.Formatter.converter` at :pyfunc:`time.gmtime`.
     * The log‑level is **DEBUG** when *debug* is *True*, otherwise **INFO**.
     """
+    debug = debug or Config.from_env().debug
     logging.Formatter.converter = time.gmtime
     logging.basicConfig(
-        level=logging.DEBUG if debug else logging.INFO, # maybe in the future add `or cfg.debug` so that debug can be set from cli or from config file
+        level=logging.DEBUG if debug else logging.INFO,
         format=_LOG_FORMAT,
         stream=sys.stderr,
+        force=True # <- overrides any previous logging setup
     )
+    _LOGGER.debug("Debug logging enabled = %s", debug)
 
 # ---------------------------------------------------------------------------
 # Sub‑command handlers
@@ -143,6 +147,7 @@ def _setup_logging(*, debug: bool) -> None:
 def _handle_load(args: argparse.Namespace, cfg: Config) -> None:
     """Implementation of the *load* sub‑command."""
     _setup_logging(debug=args.debug)
+    _LOGGER.info("Loading CSV '%s' into %s:%s/%s", args.file, cfg.host, cfg.port, cfg.database)
 
     conn = MySQLConnection(
         host=cfg.host,
@@ -158,10 +163,9 @@ def _handle_load(args: argparse.Namespace, cfg: Config) -> None:
             (r["City"], r["State"], int(r["year"]), int(r["Population"]))
             for r in reader
         )
-        conn.insert_population_rows(rows)
+        row_counter = conn.insert_population_rows(rows)
 
-    logging.info("CSV load complete.")
-
+    _LOGGER.info("CSV load complete — %d rows written.", row_counter)
     # 2. Print verification snapshot ----------------------------------------
     _dump_load_summary(conn)
 
@@ -169,6 +173,7 @@ def _handle_load(args: argparse.Namespace, cfg: Config) -> None:
 def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
     """Implementation of the *query* sub‑command."""
     _setup_logging(debug=args.debug)
+    _LOGGER.info("CLI input states = %s", args.states)
 
     # normalise
     try:
@@ -181,6 +186,8 @@ def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
         logging.warning("Duplicate state inputs detected; deduplicating.")
         states = list(dict.fromkeys(states))
 
+    _LOGGER.debug("Normalized states = %s", states)
+
     conn = MySQLConnection(
         host=cfg.host,
         port=cfg.port,
@@ -190,6 +197,7 @@ def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
     )
 
     latest = conn.latest_year()
+    _LOGGER.info("Querying latest year present in DB: %d", latest)
     rows = conn.sum_population(states, latest)
 
     per_state = {s: p for s, p in rows}
@@ -200,13 +208,14 @@ def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
         print(f"{state:<25} {pop:,}") # why do I have a bool here if it's less than 25?
     print("-" * 34) # what is this 34 doing here?
     print(f"{'Grand Total':<25} {grand_total:,}")
+    _LOGGER.info("Query finished successfully")
 
 # ---------------------------------------------------------------------------
 # helpers for summary stats after db load
 # ---------------------------------------------------------------------------
 def _dump_load_summary(conn: MySQLConnection) -> None:
     """Print row/column stats and a random sample after CSV ingest."""
-    logging.info("Running some summary statistics to help you validate that the data loaded in correctly.")
+    _LOGGER.info("Running some summary statistics to help you validate that the data loaded in correctly.")
     with conn as cur:
         cur.execute("SELECT COUNT(*) FROM city_population;")
         total_rows: int = cur.fetchone()[0]
@@ -232,6 +241,8 @@ def _dump_load_summary(conn: MySQLConnection) -> None:
             "ORDER BY RAND() LIMIT %s;", (_SAMPLE_SIZE,)
         )
         sample: List[Tuple[str, str, int, int]] = list(cur.fetchall())
+
+    _LOGGER.debug("Summary rows per year = %s", per_year)
 
     # ── Pretty-print --------------------------------------------------------
     logging.info("Load verification snapshot:")

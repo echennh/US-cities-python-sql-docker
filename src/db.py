@@ -53,6 +53,7 @@ class MySQLConnection:
             year: int | None = cur.fetchone()[0]
         if year is None:
             raise RuntimeError("Table city_population is empty")
+        logger.debug("Latest year present = %s", year)
         return year
 
     def sum_population(
@@ -78,6 +79,7 @@ class MySQLConnection:
         with self as cur:
             cur.execute(query, params)
             rows: List[Tuple[str, int]] = cur.fetchall()
+        logger.debug("Population query returned %d rows", len(rows))
         return rows
 
 
@@ -86,7 +88,7 @@ class MySQLConnection:
         self,
         rows: Iterable[tuple[str, str, int, int]],
         batch_size: int = 500,
-    ) -> None:
+    ) -> int:
         """
         Bulk-insert city population rows.
 
@@ -98,12 +100,16 @@ class MySQLConnection:
             "ON DUPLICATE KEY UPDATE population = VALUES(population);" # hmmm do I want this on duplicate key update?
         )
         bucket: list[tuple[str, str, int, int]] = []
+        processed = 0
         with self as cur:
             for row in rows:
                 bucket.append(row)
                 if len(bucket) >= batch_size:
                     cur.executemany(sql, bucket)
+                    logger.debug("Inserted batch of %d rows", len(bucket))
                     bucket.clear()
             if bucket:
                 cur.executemany(sql, bucket)
-        logger.info("Inserted/updated %d rows", len(list(rows)))
+                logger.debug("Inserted final batch of %d rows", len(bucket))
+        logger.info("Inserted/updated %d total rows", processed)
+        return processed
