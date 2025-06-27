@@ -1,5 +1,5 @@
 """
-DB access layer – single responsibility & test-friendly.
+DB access layer
 
 Hides MySQL driver specifics from the rest of the application.
 """
@@ -97,7 +97,7 @@ class MySQLConnection:
         sql = (
             "INSERT INTO city_population (city, state, year, population) "
             "VALUES (%s, %s, %s, %s) "
-            "ON DUPLICATE KEY UPDATE population = VALUES(population);" # hmmm do I want this on duplicate key update?
+            "ON DUPLICATE KEY UPDATE population = VALUES(population);"
         )
         bucket: list[tuple[str, str, int, int]] = []
         processed = 0

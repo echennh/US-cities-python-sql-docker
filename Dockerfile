@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # the build context directory is the directory on the host machine where docker will get the files to build the image
-# the build context directory is not necessarily where the Dockerfile is located'
+# the build context directory is not necessarily where the Dockerfile is located
 
 
 # makes a directory app and sets it as the working directory

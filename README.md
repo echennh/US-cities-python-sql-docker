@@ -1,113 +1,102 @@
 ![img.png](img.png)
 
+<!-- README.md – US-Cities Population Demo -->
+# US Cities Population Demo
 
-![mermaid_chart.png](mermaid_chart.png)
+A minimal data-platform exercise that:
 
-# Quick start
+* spins up **MySQL 8** + a **Python 3.11** app via **Docker Compose**,
+* bulk-loads a CSV of the 1 000 largest US cities (2014-2018),
+* exposes a CLI that aggregates state-level population totals.
+
+<details>
+<summary>Architecture (click to expand)</summary>
+
+![Sequence diagram](mermaid_chart.png)
+</details>
 
 ## Prerequsites:
+- git installed
 - Docker compose installed
 
+## Quick-start
+
 1. Clone the repo
-2. Make sure docker is running
-3. Build and start the MySQL db only (first terminal)
 ```bash
-docker compose up db --build
+git clone https://github.com/your-org/us-cities-demo.git
+cd us-cities-demo
 ```
-4. Run app queries against db (second terminal)
+2. Build the container, which will load the data into the database and then wait idly for queries.
+```bash
+docker compose up --build
+```
+3. Run app queries against db (second terminal)
 This will get you the total population in cities for each state from the latest year (2018) for each state you supply (in this case, New Hampshire and Ohio), 
 then also sum it to get the grand total. 
 
 It also will optionally print logs at the debug level if you pass in the debug environment variable as shown, or if you have a update the .env file to have `DEBUG=true`.
 ```bash
-docker compose run -e DEBUG=true --rm app \
+docker compose run \
+-e DEBUG=true \
+--rm app \
 python -m src.app query \
---user ro --pw-stdin --states "New Hampshire" OH
+--user ro --pw-stdin \
+--states "New Hampshire" OH
 ```
-5. Once done using the container, open a new terminal up and run `docker compose down`, which will cleanup docker resources from just this project.
+
+The output should look like this:
+```
+New Hampshire             1,559,489
+Ohio                      15,538,845
+----------------------------------
+Grand Total               17,098,334
+```
 
 
-
-# Debugging
-
-If you want to get into the db to just run some queries and take a look at it:
+5. Once done using the container, open a new terminal up and run this command, which will stop containers and remove docker volumes from just this project.
 ```bash
-docker exec -it first_db mysql -uroot -proot geodata
+docker compose down -v
 ```
 
+
+# CLI Reference
+To show the help:
 ```bash
-docker exec -it first_db mysql -uloader -ploaderpass geodata
+docker compose run --rm app python -m src.app --help
 ```
+or for the help specific to load or query, just add in `load` or `query` in front of `--help` in the above command.
 
-If debugging and you changed the source code or docker code, use `--no-cache` to force the container to rebuild fresh.
-```bash
-docker compose up db --build --no-cache
-```
+The output will look like:
 
-Inspect the docker container after build:
-```bash
-# 1) Build **only** the "builder" stage and give it a human-friendly tag
-DOCKER_BUILDKIT=1 \
-docker build \
---target builder \
-  -t myapp:builder \
-  .
+`python -m src.app [load|query] [options]`
 
-# 2) Drop into a shell that shows you the exact filesystem of that stage
-docker run --rm -it myapp:builder bash
+`load  --file /data/cities.csv`     # default inside container
 
-# 3) now I can run the code that my docker container would be running
-/opt/venv/bin/python -m src.app --help
-```
+`query --states CA NY ...   `       # full name or 2-letter code
 
-`--target builder` stages the name from my Dockerfile
-`-t myapp:builder` is where I set the tag
+Common DB flags
 
+  `--user USER`
 
-If you want to debug in Pycharm (must have Professional),
-1. go to Settings -> Project -> Python Interpreter.
-2. Click on "Add Interpreter" --> "On Docker Compose"
-3. In the "Services" section, click "App", then "Next"
-4. Select "venv" and then type in /opt/venv/bin/python. Once you hit enter, it will stil look like there is no interpreter. Click on the interpreter box again, and now you should see the new one in the dropdown -select it.
-5. In your run configuration, go choose the new interpreter and apply it to your run configuration.
+  `--pw-stdin | --pw-file FILE | --password PW`
+
+🔧 Debug logging
+
+Either set `DEBUG=true` (env-var) or pass `--debug` and the app will emit detailed SQL / timing info.
+
+# Environment variables
+| Variable  | Default   | Purpose                  |
+| --------- | --------- | ------------------------ |
+| `DB_HOST` | `db`      | MySQL service host       |
+| `DB_PORT` | `3306`    | … port                   |
+| `DB_NAME` | `geodata` | Database name            |
+| `DEBUG`   | `false`   | Turn on DEBUG-level logs |
 
 
-## Pycharm Debugger: can't open file '/opt/.pycharm_helpers/pydev/pydevd.py': [Errno 2] No such file or directory
+# Developer tips
 
-1. Stop all your docker containers running.
-2. Exit out of Pycharm. 
-3. Keep pycharm closed, and run some docker cleanup:
-```bash
-docker container prune
-```
-
-```bash
-docker image prune
-```
-
-```bash
-docker builder prune
-```
-
-```bash
-docker volume prune
-```
-
-```bash
-docker network prune
-```
-
-```bash
-docker system prune -a --volumes   # nuke ALL unused objects
-```
-4. Now you can open Pycharm again, and recreate the Docker compose interpeter (see directions above.)
-5. Now you can run the Pycharm run configuration in debug mode.
-
-What happened?
-PyCharm had created a named Docker volume for its debugger helpers (us-cities-python-sql-docker_pycharm_helpers_PY-…) but - because of a known JetBrains bug - never copied the helper files into it, so every debug run died with “can't open file '/opt/.pycharm_helpers/pydev/pydevd.py'”.
-These prune commands deleted the stale, empty helpers volume (and associated containers/networks); when you opened PyCharm again it rebuilt the Compose interpreter from scratch, this time bind-mounting or repopulating the helpers correctly, so pydevd.py was finally present and the debugger could start.
-
-### References
-https://youtrack.jetbrains.com/issue/PY-81141
-
-https://tomwojcik.com/posts/2021-01-20/filenotfound-fragment.py-pycharm
+| Task                                | Command                                                |
+| ----------------------------------- | ------------------------------------------------------ |
+| **Run unit tests** inside the image | `docker compose run --rm app pytest -q`                |
+| **Rebuild from scratch**            | `docker compose build --no-cache app`                  |
+| **Poke the DB** (root user)         | `docker exec -it first_db mysql -uroot -proot geodata` |

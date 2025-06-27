@@ -32,11 +32,6 @@ from .us_states import normalize
 
 # Inside a package, you must use *relative* imports so Python can unambiguously resolve siblings (with the dots)
 # Pycharm's Docker Compose interpreter sometimes masks this by putting your project root on PYTHONPATH, making absolute `from config import Config` look like it works
-# but I don't get the IDE convenience layer in the container, so the below code isn't portable to the container
-# Uncomment this if debugging python code:
-# from config import Config
-# from db import MySQLConnection
-# from us_states import normalize
 
 __all__ = ["main"]
 
@@ -89,7 +84,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--states",
         nargs="+",
         metavar="STATE",
-        help="One or more US states (full name or 2-letter code)", # TODO: figure out how this handles full name states with a space in between their name
+        help="One or more US states (full name or 2-letter code)",
     )
     query_p.add_argument("--debug", action="store_true", help="Enable verbose logging")
     _add_common_db_args(query_p)
@@ -135,8 +130,7 @@ def _setup_logging(*, debug: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.INFO,
         format=_LOG_FORMAT,
-        stream=sys.stderr,
-        force=True # <- overrides any previous logging setup
+        stream=sys.stderr
     )
     _LOGGER.debug("Debug logging enabled = %s", debug)
 
@@ -175,11 +169,11 @@ def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
     _setup_logging(debug=args.debug)
     _LOGGER.info("CLI input states = %s", args.states)
 
-    # normalise
+    # normalize
     try:
         states = [normalize(s) for s in args.states]
     except KeyError as exc:
-        logging.error("Bad state: %s", exc) # do I want to raise custom exception or just do this logging.error?
+        logging.error("Bad state: %s", exc)
         sys.exit(1)
 
     if len(set(states)) != len(states):
@@ -205,8 +199,8 @@ def _handle_query(args: argparse.Namespace, cfg: Config) -> None:
 
     for state in states:
         pop = per_state[state]
-        print(f"{state:<25} {pop:,}") # why do I have a bool here if it's less than 25?
-    print("-" * 34) # what is this 34 doing here?
+        print(f"{state:<25} {pop:,}")
+    print("-" * 34)
     print(f"{'Grand Total':<25} {grand_total:,}")
     _LOGGER.info("Query finished successfully")
 
@@ -276,9 +270,9 @@ def main() -> None:
         _handle_load(args, cfg)
     elif args.command == "query":
         _handle_query(args, cfg)
-    else:  # pragma: no cover – unreachable thanks to *required=True*
+    else:  # should be unreachable thanks to *required=True*
         raise RuntimeError("Unknown command")
 
 
-if __name__ == "__main__":  # prag‑extended: no cover
+if __name__ == "__main__":
     main()
